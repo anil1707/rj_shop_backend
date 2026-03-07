@@ -10,6 +10,7 @@ const pool = new Pool({
   ssl: {
     rejectUnauthorized: false,
   },
+  family: 4, // 👈 force IPv4
 });
 
 export const connectDB = async () => {
