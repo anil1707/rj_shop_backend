@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+.pnp*
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Environment variables
+.env
+.env.test
+
+# Build output
+dist/
+build/
+.next/
+
+# IDE/System
+.DS_Store
+.vscode/
