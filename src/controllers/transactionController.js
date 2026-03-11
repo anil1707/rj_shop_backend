@@ -1,23 +1,32 @@
 import pool from "../config/db.js";
 
+
 export const addTransaction = async (req, res) => {
   try {
-    const { customerId, type, amount, note, paymentMethod } = req.body;
+
+    const { purchaseId, amount, type, note, paymentMethod } = req.body;
+
+    if(!purchaseId || !amount || !note){
+        return res.status(400).json({message: "Failed to create transaction"})
+    }
 
     const result = await pool.query(
-      `INSERT INTO transactions 
-      (customer_id,type,amount,note,payment_method)
+      `
+      INSERT INTO transactions
+      (purchase_id, amount, type, note, payment_method)
       VALUES ($1,$2,$3,$4,$5)
-      RETURNING *`,
-      [customerId, type, amount, note, paymentMethod]
+      RETURNING *
+      `,
+      [purchaseId, amount, type, note, paymentMethod]
     );
 
     res.json(result.rows[0]);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
   }
 };
-
 export const getCustomerTransactions = async (req, res) => {
   try {
     const { customerId } = req.params;

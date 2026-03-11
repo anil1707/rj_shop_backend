@@ -4,88 +4,41 @@ export const getDashboard = async (req, res) => {
   try {
 
     const result = await pool.query(`
-      SELECT
+      WITH purchase_stats AS (
+        SELECT
+          COALESCE(SUM(total_amount),0) AS total_sales,
+          COALESCE(SUM(CASE WHEN DATE(created_at)=CURRENT_DATE THEN total_amount END),0) AS today_sales,
+          COALESCE(SUM(CASE WHEN DATE_TRUNC('month',created_at)=DATE_TRUNC('month',CURRENT_DATE) THEN total_amount END),0) AS month_sales
+        FROM purchases
+      ),
 
-      /* Outstanding Amount */
-      COALESCE(
-        SUM(
-          CASE 
-            WHEN t.type = 'RECEIVED' THEN t.amount
-            WHEN t.type = 'GIVEN' THEN -t.amount
-          END
-        ),0
-      )::INTEGER AS outstanding_amount,
+      payment_stats AS (
+        SELECT
+          COALESCE(SUM(amount),0) AS total_collection,
+          COALESCE(SUM(CASE WHEN DATE_TRUNC('month',created_at)=DATE_TRUNC('month',CURRENT_DATE) THEN amount END),0) AS month_collection
+        FROM transactions
+        WHERE type='RECEIVED'
+      ),
 
-      /* Today Sales */
-      COALESCE(
-        SUM(
-          CASE
-            WHEN t.type = 'GIVEN'
-            AND DATE(t.created_at) = CURRENT_DATE
-            THEN t.amount
-          END
-        ),0
-      )::INTEGER AS today_sales,
-
-      /* Total Active Customers */
-      (
-        SELECT COUNT(*)
-        FROM customers
-      )::INTEGER AS total_customers,
-
-      /* Inventory Items */
-      (
-        SELECT COUNT(*)
-        FROM inventory
-      )::INTEGER AS inventory_items,
-
-      /* This Month Collection */
-      COALESCE(
-        SUM(
-          CASE
-            WHEN t.type = 'RECEIVED'
-            AND DATE_TRUNC('month', t.created_at) = DATE_TRUNC('month', CURRENT_DATE)
-            THEN t.amount
-          END
-        ),0
-      )::INTEGER AS month_collection,
-
-      /* This Month Sales */
-      COALESCE(
-        SUM(
-          CASE
-            WHEN t.type = 'GIVEN'
-            AND DATE_TRUNC('month', t.created_at) = DATE_TRUNC('month', CURRENT_DATE)
-            THEN t.amount
-          END
-        ),0
-      )::INTEGER AS month_sales,
-
-      /* This Month Credit */
-      COALESCE(
-        SUM(
-          CASE
-            WHEN t.type = 'GIVEN'
-            AND DATE_TRUNC('month', t.created_at) = DATE_TRUNC('month', CURRENT_DATE)
-            THEN t.amount
-          END
-        ),0
+      counts AS (
+        SELECT
+          (SELECT COUNT(*) FROM customers) AS total_customers,
+          (SELECT COUNT(*) FROM inventory) AS inventory_items
       )
-      -
-      COALESCE(
-        SUM(
-          CASE
-            WHEN t.type = 'RECEIVED'
-            AND DATE_TRUNC('month', t.created_at) = DATE_TRUNC('month', CURRENT_DATE)
-            THEN t.amount
-          END
-        ),0
-      )::INTEGER AS month_credit
 
-      FROM transactions t
+      SELECT
+        (p.total_sales - pay.total_collection)::INTEGER AS outstanding_amount,
+        p.today_sales::INTEGER AS today_sales,
+        c.total_customers::INTEGER,
+        c.inventory_items::INTEGER,
+        pay.month_collection::INTEGER,
+        p.month_sales::INTEGER,
+        (p.month_sales - pay.month_collection)::INTEGER AS month_credit
+
+      FROM purchase_stats p
+      CROSS JOIN payment_stats pay
+      CROSS JOIN counts c
     `);
-
-    console.log("result", result)
 
     res.json(result.rows[0]);
 
