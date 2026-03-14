@@ -10,10 +10,14 @@
     "start": "nodemon server.js"
   },
   "dependencies": {
+    "@aws-sdk/client-cognito-identity-provider": "^3.1007.0",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "jwks-rsa": "^4.0.1",
     "nodemon": "^3.1.14",
+    "openid-client": "^6.8.2",
     "pg": "^8.19.0"
   }
 }
