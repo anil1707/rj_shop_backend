@@ -7,17 +7,43 @@ export const getDashboard = async (req, res) => {
       WITH purchase_stats AS (
         SELECT
           COALESCE(SUM(total_amount),0) AS total_sales,
-          COALESCE(SUM(CASE WHEN DATE(created_at)=CURRENT_DATE THEN total_amount END),0) AS today_sales,
-          COALESCE(SUM(CASE WHEN DATE_TRUNC('month',created_at)=DATE_TRUNC('month',CURRENT_DATE) THEN total_amount END),0) AS month_sales
+
+          COALESCE(
+            SUM(
+              CASE 
+                WHEN DATE(created_at)=CURRENT_DATE 
+                THEN total_amount 
+              END
+            ),0
+          ) AS today_sales,
+
+          COALESCE(
+            SUM(
+              CASE 
+                WHEN DATE_TRUNC('month',created_at)=DATE_TRUNC('month',CURRENT_DATE)
+                THEN total_amount 
+              END
+            ),0
+          ) AS month_sales
+
         FROM purchases
       ),
 
       payment_stats AS (
         SELECT
           COALESCE(SUM(amount),0) AS total_collection,
-          COALESCE(SUM(CASE WHEN DATE_TRUNC('month',created_at)=DATE_TRUNC('month',CURRENT_DATE) THEN amount END),0) AS month_collection
+
+          COALESCE(
+            SUM(
+              CASE
+                WHEN DATE_TRUNC('month',created_at)=DATE_TRUNC('month',CURRENT_DATE)
+                THEN amount
+              END
+            ),0
+          ) AS month_collection
+
         FROM transactions
-        WHERE type='RECEIVED'
+        WHERE is_auto = false
       ),
 
       counts AS (
@@ -43,7 +69,10 @@ export const getDashboard = async (req, res) => {
     res.json(result.rows[0]);
 
   } catch (error) {
+
     console.error(error);
-    res.json({ message: "Server error" });
+
+    res.status(500).json({ message: "Server error" });
+
   }
 };

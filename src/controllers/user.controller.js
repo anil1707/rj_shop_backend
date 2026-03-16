@@ -2,7 +2,6 @@ export const getUserProfile = async (req, res) => {
   try {
 
     const user = req.user;
-    console.log("sdfsdsdsf", user)
 
     res.json({
       id: user.id,

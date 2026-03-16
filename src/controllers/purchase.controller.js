@@ -59,6 +59,7 @@ export const createPurchase = async (req, res) => {
 
 export const getCustomerPurchases = async (req, res) => {
   try {
+
     const { id } = req.params;
 
     const result = await pool.query(
@@ -69,33 +70,26 @@ export const getCustomerPurchases = async (req, res) => {
         p.total_amount,
         p.created_at,
 
-        COALESCE(
-          SUM(
-            CASE
-              WHEN t.type = 'RECEIVED' THEN t.amount
-              ELSE 0
-            END
-          ), 0
-        ) AS total_paid,
+        COALESCE(SUM(t.amount),0) AS total_paid,
 
-        p.total_amount -
-        COALESCE(
-          SUM(
-            CASE
-              WHEN t.type = 'RECEIVED' THEN t.amount
-              ELSE 0
-            END
-          ), 0
-        ) AS remaining_amount
+        p.total_amount - COALESCE(SUM(t.amount),0) AS remaining_amount
 
       FROM purchases p
 
       LEFT JOIN transactions t
-      ON p.id = t.purchase_id
+      ON (
+          t.purchase_id = p.id
+          OR t.purchase_item_id IN (
+              SELECT id
+              FROM purchase_items
+              WHERE purchase_id = p.id
+          )
+      )
+      AND t.is_auto = false
 
       WHERE p.customer_id = $1
 
-      GROUP BY p.id
+      GROUP BY p.id, p.bill_number, p.total_amount, p.created_at
 
       ORDER BY p.created_at DESC
       `,
@@ -105,11 +99,16 @@ export const getCustomerPurchases = async (req, res) => {
     res.json(result.rows);
 
   } catch (error) {
+
     console.error(error);
+
     res.status(500).json({ message: "Server error" });
+
   }
 };
 
+
+// not using it
 export const getPurchaseDetails = async (req, res) => {
   try {
 

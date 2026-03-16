@@ -1,14 +1,27 @@
 import express from "express";
 import {
-  addTransaction,
-  getCustomerTransactions,
-  getCustomerBalance
+  createTransaction,
+  getTransactions,
+  getTransactionSummary,
+  updateTransaction
 } from "../controllers/transactionController.js";
 
 const router = express.Router();
 
-router.post("/", addTransaction);
-router.get("/:customerId", getCustomerTransactions);
-router.get("/balance/:customerId", getCustomerBalance);
+
+// CREATE PAYMENT
+router.post("/", createTransaction);
+
+
+// GET PAYMENTS
+router.get("/", getTransactions);
+
+router.put("/:id", updateTransaction);
+
+
+// SUMMARY
+router.get("/summary", getTransactionSummary);
+
+
 
 export default router;

@@ -83,6 +83,7 @@ export const getCustomers = async (req, res) => {
 
       FROM customers c
 
+      -- total purchases
       LEFT JOIN (
         SELECT 
           customer_id,
@@ -92,14 +93,25 @@ export const getCustomers = async (req, res) => {
       ) p
       ON c.id = p.customer_id
 
+      -- total payments (bill + item payments)
       LEFT JOIN (
         SELECT 
           pr.customer_id,
           SUM(t.amount) AS total_paid
         FROM transactions t
-        JOIN purchases pr
-        ON t.purchase_id = pr.id
-        WHERE t.type = 'RECEIVED'
+
+        LEFT JOIN purchases pr
+        ON (
+              t.purchase_id = pr.id
+              OR t.purchase_item_id IN (
+                  SELECT id
+                  FROM purchase_items
+                  WHERE purchase_id = pr.id
+              )
+           )
+
+        WHERE t.is_auto = false
+
         GROUP BY pr.customer_id
       ) t
       ON c.id = t.customer_id
@@ -110,8 +122,11 @@ export const getCustomers = async (req, res) => {
     res.json(result.rows);
 
   } catch (error) {
+
     console.error(error);
+
     res.status(500).json({ message: "Server error" });
+
   }
 };
 
