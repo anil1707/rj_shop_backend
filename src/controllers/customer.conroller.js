@@ -44,8 +44,6 @@ export const updateCustomer = async (req, res) => {
     const { id } = req.params;
     const { name, phone, address } = req.body;
 
-    console.log("bodsdf", req?.body)
-
     if (!name || !phone) {
       return res.status(400).json({
         message: "Name and phone are required"
